@@ -4,6 +4,14 @@ import FirebaseCore
 import FirebaseFirestore
 import GeoFire
 
+public enum QueryType {
+    case lessThan
+    case greaterThan
+    case equalTo
+    case greaterThanOrEqual
+    case lessThanOrEqual
+}
+
 public extension GeoPoint {
     class func geopointWithLocation(location: CLLocation) -> GeoPoint {
         return GeoPoint(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
@@ -144,8 +152,8 @@ public class GeoFirestore {
      * @param radius The radius in kilometers of the geo query
      * @return The `GFSCircleQuery` object that can be used for geo queries.
      */
-    public func query(withCenter center: GeoPoint, radius: Double) -> GFSCircleQuery {
-        return GFSCircleQuery(geoFirestore: self, center: center.locationValue(), radius: radius)
+    public func query(withCenter center: GeoPoint, radius: Double, queryKey: String? = nil, queryValue: Any? = nil, queryType: QueryType? = nil) -> GFSCircleQuery {
+        return GFSCircleQuery(geoFirestore: self, center: center.locationValue(), radius: radius, queryKey: queryKey, queryValue: queryValue, queryType: queryType)
     }
     
     /**
@@ -154,8 +162,8 @@ public class GeoFirestore {
      * @param radius The radius in kilometers of the geo query
      * @return The `GFSCircleQuery` object that can be used for geo queries.
      */
-    public func query(withCenter center: CLLocation, radius: Double) -> GFSCircleQuery {
-        return GFSCircleQuery(geoFirestore: self, center: center, radius: radius)
+    public func query(withCenter center: CLLocation, radius: Double, queryKey: String? = nil, queryValue: Any? = nil, queryType: QueryType? = nil) -> GFSCircleQuery {
+        return GFSCircleQuery(geoFirestore: self, center: center, radius: radius, queryKey: queryKey, queryValue: queryValue, queryType: queryType)
     }
     
     /**
@@ -164,10 +172,9 @@ public class GeoFirestore {
      * @param region The region which this query searches
      * @return The GFSRegionQuery object that can be used for geo queries.
      */
-    public func query(inRegion region: MKCoordinateRegion) -> GFSRegionQuery{
-        return GFSRegionQuery(geoFirestore: self, region: region)
+    public func query(inRegion region: MKCoordinateRegion, queryKey: String? = nil, queryValue: Any? = nil, queryType: QueryType? = nil) -> GFSRegionQuery{
+        return GFSRegionQuery(geoFirestore: self, region: region, queryKey: queryKey, queryValue: queryValue, queryType: queryType)
     }
-    
 }
 
 
@@ -181,7 +188,7 @@ public enum GFSEventType {
 
 
 public typealias GFSQueryResultBlock = (String?, CLLocation?) -> Void
-public typealias GFSReadyBlock = () -> Void
+public typealias GFSReadyBlock = (QuerySnapshot?, Error?) -> Void
 public typealias GFSQueryHandle = UInt
 
 internal class GFSGeoHashQueryListener {
@@ -211,6 +218,11 @@ public class GFSQuery {
      */
     public var searchLimit: Int?
     
+    /// use these properties to define a compund query with location query
+    public var queryKey: String?
+    public var queryValue: Any?
+    public var queryType: QueryType?
+    
     internal var locationInfos = [String: GFSQueryLocationInfo]()
     internal var queries = Set<GFGeoHashQuery>()
     internal var handles = [GFGeoHashQuery: GFSGeoHashQueryListener]()
@@ -225,18 +237,36 @@ public class GFSQuery {
     
     internal var listenerForHandle = [GFSQueryHandle: ListenerRegistration]()
     
-    internal init(geoFirestore: GeoFirestore) {
+    internal init(geoFirestore: GeoFirestore, queryKey: String?, queryValue: Any?, queryType: QueryType?) {
         self.geoFirestore = geoFirestore
+        self.queryKey = queryKey
+        self.queryValue = queryValue
+        self.queryType = queryType
         currentHandle = 1
         self.reset()
     }
-    
-    internal func fireStoreQueryForGeoHashQuery(query: GFGeoHashQuery) -> Query {
-        var query = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue)
-        if let limit = self.searchLimit {
-            query = query.limit(to: limit)
+
+    internal func fireStoreQueryForGeoHashQuery(query: GFGeoHashQuery, queryKey: String?, queryValue: Any?, queryType: QueryType?) -> Query {
+        var firQuery = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue)
+        if let key = queryKey, let value = queryValue, let type = queryType {
+            switch type {
+            case .equalTo:
+                firQuery = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue).whereField(key, isEqualTo: value)
+            case .greaterThan:
+                firQuery = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue).whereField(key, isGreaterThan: value)
+            case .greaterThanOrEqual:
+                firQuery = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue).whereField(key, isGreaterThanOrEqualTo: value)
+            case .lessThan:
+                firQuery = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue).whereField(key, isLessThan: value)
+            case .lessThanOrEqual:
+                firQuery = self.geoFirestore.collectionRef.order(by: "g").whereField("g", isGreaterThanOrEqualTo: query.startValue).whereField("g", isLessThanOrEqualTo: query.endValue).whereField(key, isLessThanOrEqualTo: value)
+            }
         }
-        return query
+        
+        if let limit = self.searchLimit {
+            firQuery = firQuery.limit(to: limit)
+        }
+        return firQuery
     }
     
     //overriden
@@ -368,11 +398,11 @@ public class GFSQuery {
         }
     }
     
-    internal func checkAndFireReadyEvent() {
+    internal func checkAndFireReadyEvent(snapshot: QuerySnapshot?, error: Error?) {
         if outstandingQueries.count == 0 {
             for (offset: _, element: (key: _, value: block)) in readyObservers.enumerated() {
                 self.geoFirestore.callbackQueue.async {
-                    block()
+                    block(snapshot, error)
                 }
             }
         }
@@ -412,7 +442,7 @@ public class GFSQuery {
                 
                 self.outstandingQueries.insert(query)
                 let handle = GFSGeoHashQueryListener()
-                let queryFirestore: Query = self.fireStoreQueryForGeoHashQuery(query: query)
+                let queryFirestore: Query = self.fireStoreQueryForGeoHashQuery(query: query, queryKey: self.queryKey, queryValue: queryValue, queryType: queryType)
                 
                 handle.childAddedListener = queryFirestore.addSnapshotListener { (querySnapshot: QuerySnapshot?, err) in
                     if let snapshot = querySnapshot, err == nil {
@@ -451,11 +481,10 @@ public class GFSQuery {
                         let lockQueue = DispatchQueue(label: "self")
                         lockQueue.sync {
                             while let elementIndex = self.outstandingQueries.index(of: query) { self.outstandingQueries.remove(at: elementIndex) }
-                            self.checkAndFireReadyEvent()
+                            self.checkAndFireReadyEvent(snapshot: snapshot, error: error)
                         }
                     }
                 }
-                
             }
         }
         
@@ -472,7 +501,7 @@ public class GFSQuery {
             }
         }
         for k in oldLocations { locationInfos.removeValue(forKey: k) }
-        checkAndFireReadyEvent()
+        checkAndFireReadyEvent(snapshot: nil, error: nil)
     }
     
     internal func reset() {
@@ -580,7 +609,7 @@ public class GFSQuery {
             }
             if self.outstandingQueries.count == 0{
                 self.geoFirestore.callbackQueue.async {
-                    block()
+                    block(nil, nil)
                 }
             }
             
@@ -645,10 +674,11 @@ public class GFSCircleQuery: GFSQuery {
         }
     }
     
-    public init(geoFirestore: GeoFirestore, center: CLLocation, radius: Double) {
+    public init(geoFirestore: GeoFirestore, center: CLLocation, radius: Double, queryKey: String?, queryValue: Any?, queryType: QueryType?) {
         self.radius = radius
         self.center = center
-        super.init(geoFirestore: geoFirestore)
+        
+        super.init(geoFirestore: geoFirestore, queryKey: queryKey, queryValue: queryValue, queryType: queryType)
     }
     
     override internal func locationIsInQuery(loc: CLLocation) -> Bool {
@@ -674,9 +704,9 @@ public class GFSRegionQuery: GFSQuery {
         }
     }
     
-    public init(geoFirestore: GeoFirestore, region: MKCoordinateRegion) {
+    public init(geoFirestore: GeoFirestore, region: MKCoordinateRegion, queryKey: String?, queryValue: Any?, queryType: QueryType?) {
         self.region = region
-        super.init(geoFirestore: geoFirestore)
+        super.init(geoFirestore: geoFirestore, queryKey: queryKey, queryValue: queryValue, queryType: queryType)
     }
     
     override internal func locationIsInQuery(loc: CLLocation) -> Bool {
@@ -692,4 +722,3 @@ public class GFSRegionQuery: GFSQuery {
         return GFGeoHashQuery.queries(for: self.region)
     }
 }
-
