@@ -309,7 +309,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-Geofirestore_Example/Pods-Geofirestore_Example-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Geofirestore_Example/Pods-Geofirestore_Example-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/BoringSSL/openssl.framework",
 				"${BUILT_PRODUCTS_DIR}/GoogleToolboxForMac/GoogleToolboxForMac.framework",
 				"${BUILT_PRODUCTS_DIR}/Protobuf/Protobuf.framework",
@@ -334,7 +334,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-Geofirestore_Example/Pods-Geofirestore_Example-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Geofirestore_Example/Pods-Geofirestore_Example-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		F431DD6121E41B9C5725D2CC /* [CP] Embed Pods Frameworks */ = {
@@ -343,7 +343,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-Geofirestore_Tests/Pods-Geofirestore_Tests-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Geofirestore_Tests/Pods-Geofirestore_Tests-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/Nimble/Nimble.framework",
 				"${BUILT_PRODUCTS_DIR}/Quick/Quick.framework",
 			);
@@ -354,7 +354,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-Geofirestore_Tests/Pods-Geofirestore_Tests-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Geofirestore_Tests/Pods-Geofirestore_Tests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

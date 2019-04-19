@@ -42,11 +42,11 @@ PODS:
     - FirebaseCore (~> 5.0)
   - GeoFire (3.0.0):
     - Firebase/Database (~> 5.0)
-  - Geofirestore (0.1.0):
-    - Firebase (~> 5.4)
-    - FirebaseCore (~> 5.0.3)
-    - FirebaseFirestore (~> 0.12.3)
-    - GeoFire (~> 3.0)
+  - Geofirestore (1.0.0):
+    - Firebase
+    - FirebaseCore
+    - FirebaseFirestore
+    - GeoFire
   - GoogleToolboxForMac/Defines (2.1.4)
   - "GoogleToolboxForMac/NSData+zlib (2.1.4)":
     - GoogleToolboxForMac/Defines (= 2.1.4)
@@ -120,7 +120,7 @@ SPEC CHECKSUMS:
   FirebaseFirestore: b041e4a94601e18e82a863e0dcfa9d3e55cc2031
   FirebaseInstanceID: f3f0657372592ecdfdfe2cac604a5a75758376a6
   GeoFire: e3ae6f4be3f2466c3467ef6c1c203db3af935c59
-  Geofirestore: 923bb0bd41bc9f7ff2e98d8933ccfc69245ff6ee
+  Geofirestore: f7e15c7838b2b3b017c487073135e8c29bf3f005
   GoogleToolboxForMac: 91c824d21e85b31c2aae9bb011c5027c9b4e738f
   gRPC: 81b990caa01d7c32605d300c2ffd1b5ba0ef9e49
   gRPC-Core: a56b086a8ef5ced6f6ba5be5bc0a63fca185015a
@@ -134,4 +134,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: d881a1da426ac7c0f4db2ed3b363ea368671450f
 
-COCOAPODS: 1.5.3
+COCOAPODS: 1.6.1
